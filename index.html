@@ -204,31 +204,79 @@
         </div>
     </div>
 
-    <script>
-        // 数据存储
-        const storage = {
-            get: key => {
-                try { return JSON.parse(localStorage.getItem(key) || '{}'); }
-                catch(e) { return {}; }
-            },
-            set: (key, value) => {
-                try { localStorage.setItem(key, JSON.stringify(value)); }
-                catch(e) {}
+  <script>
+    // 数据存储
+    const storage = {
+        get: key => {
+            try { return JSON.parse(localStorage.getItem(key) || '{}'); }
+            catch(e) { return {}; }
+        },
+        set: (key, value) => {
+            try { localStorage.setItem(key, JSON.stringify(value)); }
+            catch(e) {}
+        }
+    };
+
+    // 初始化
+    window.onload = function() {
+        const data = storage.get('health') || {
+            weight: 85.0,
+            targetWeight: 75.0,
+            records: []
+        };
+        
+        if (!data.records) data.records = [];
+        storage.set('health', data);
+        updateDisplay(data);
+        
+        document.getElementById('weightResult').innerHTML = '<div class="result">输入体重后点击"记录体重"</div>';
+    };
+
+    function updateDisplay(data) {
+        document.getElementById('currentWeight').textContent = `${data.weight} kg`;
+        document.getElementById('currentBmi').textContent = (data.weight / Math.pow(1.75, 2)).toFixed(1);
+        document.getElementById('targetWeight').textContent = `${data.targetWeight} kg`;
+        const progress = Math.max(0, Math.min(100, ((data.weight - data.targetWeight) / (85 - data.targetWeight)) * 100));
+        document.getElementById('progress').textContent = `${progress.toFixed(0)}%`;
+    }
+
+    function saveWeight() {
+        const weight = parseFloat(document.getElementById('weight').value);
+        if (isNaN(weight) || weight <= 0) {
+            document.getElementById('weightResult').innerHTML = '<div class="result error">❌ 请输入有效的体重数值</div>';
+            return;
+        }
+
+        const data = storage.get('health');
+        data.weight = weight;
+        data.records.push({
+            type: 'weight',
+            value: weight,
+            date: new Date().toISOString()
+        });
+        storage.set('health', data);
+        
+        document.getElementById('weightResult').innerHTML = '<div class="result success">✅ 体重记录成功！</div>';
+        updateDisplay(data);
+    }
+
+    function showData() {
+        const data = storage.get('health');
+        let msg = `当前体重: ${data.weight}kg\n`;
+        msg += `目标体重: ${data.targetWeight}kg\n\n`;
+        msg += `历史记录 (${data.records.length}条):\n`;
+        data.records.forEach(record => {
+            if (record.type === 'weight') {
+                msg += `${new Date(record.date).toLocaleDateString()} - 体重: ${record.value}kg\n`;
             }
-        };
+        });
+        alert(msg);
+    }
 
-        // 初始化
-        window.onload = function() {
-            const data = storage.get('health') || {
-                weight: 85.0,
-                targetWeight: 75.0,
-                records: []
-            };
-            
-            if (!data.records) data.records = [];
-            storage.set('health', data);
-            updateDisplay(data);
-        };
-
-        function updateDisplay(data) {
-            document.getElementById(
+    function clearData() {
+        if (confirm('确定要清空所有数据吗？')) {
+            localStorage.removeItem('health');
+            window.location.reload();
+        }
+    }
+</script>
